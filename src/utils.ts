@@ -107,12 +107,26 @@ export async function execute<P extends UrlParameters>(
   path: string,
   parameters: P,
   timeout: number,
-): Promise<Response> {
+) {
+
   const url = buildUrl(path, {
     ...parameters,
     source: getSource(),
   });
-  return await _internals.fetch(url, {
-    signal: AbortSignal.timeout(timeout),
+
+  const controller = new AbortController();
+
+  const signal = controller.signal;
+
+  const timeoutId = setTimeout(() => {
+    controller.abort();
+    console.error('Request timed out');
+  }, timeout);
+
+  return _internals.fetch(url, {
+    signal,
+  }).then((response) => {
+    clearTimeout(timeoutId);
+    return response
   });
 }
